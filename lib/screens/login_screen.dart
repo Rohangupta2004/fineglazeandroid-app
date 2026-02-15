@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signIn() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
+        const SnackBar(content: Text('Verification required: Enter credentials')),
       );
       return;
     }
@@ -43,8 +43,8 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.message),
-            backgroundColor: Colors.red,
+            content: Text(error.message.toUpperCase()),
+            backgroundColor: Colors.black,
           ),
         );
       }
@@ -52,8 +52,8 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('An unexpected error occurred'),
-            backgroundColor: Colors.red,
+            content: Text('SYSTEM ERROR: UNEXPECTED TERMINATION'),
+            backgroundColor: Colors.black,
           ),
         );
       }
@@ -79,60 +79,62 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: Image.asset(
+                  'asset/fineglaze.png',
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 32),
               const Text(
-                'FineGlaze',
+                'CLIENT ACCESS',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.0,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'FineGlaze™',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
                   color: Color(0xFF1A1A1A),
                 ),
               ),
               const SizedBox(height: 48),
-              TextField(
+              _buildTextField(
                 controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email or Phone',
-                  hintText: 'Enter your email or phone number',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
-                  ),
-                ),
+                label: 'USER IDENTIFICATION',
+                hint: 'Email or phone reference',
+                icon: Icons.alternate_email_rounded,
               ),
-              const SizedBox(height: 16),
-              TextField(
+              const SizedBox(height: 20),
+              _buildTextField(
                 controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password/OTP',
-                  hintText: 'Enter your password or OTP',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
-                  ),
-                ),
+                label: 'SECURITY KEY',
+                hint: 'Encrypted password or OTP',
+                icon: Icons.lock_outline_rounded,
+                obscure: true,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A1A1A),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -148,17 +150,74 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       )
                     : const Text(
-                        'Login',
+                        'AUTHORIZE ACCESS',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
                         ),
                       ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Technical Support: +91 [SUPPORT_REF]',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool obscure = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Colors.grey,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[300], fontSize: 14, fontWeight: FontWeight.normal),
+            prefixIcon: Icon(icon, size: 20, color: const Color(0xFF1A1A1A)),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFEEEEEE), width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

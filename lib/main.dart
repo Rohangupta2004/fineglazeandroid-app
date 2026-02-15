@@ -23,12 +23,34 @@ class FineGlazeApp extends StatelessWidget {
       title: 'FineGlaze',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1A1A1A),
           primary: const Color(0xFF1A1A1A),
+          surface: Colors.white,
         ),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+          iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
+        ),
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(
+            color: Color(0xFF1A1A1A),
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.0,
+          ),
+          bodyLarge: TextStyle(color: Color(0xFF4A4A4A), fontSize: 16),
+          bodyMedium: TextStyle(color: Color(0xFF6A6A6A), fontSize: 14),
+        ),
       ),
       // Check if user is already logged in
       home: Supabase.instance.client.auth.currentSession != null
