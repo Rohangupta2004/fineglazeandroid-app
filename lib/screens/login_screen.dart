@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_screen.dart';
+import 'signup_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -33,11 +34,8 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (response.user != null) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const DashboardPage()),
-          );
-        }
+        // No manual navigation needed. 
+        // AuthManager will trigger a rebuild in main.dart
       }
     } on AuthException catch (error) {
       if (mounted) {
@@ -63,6 +61,34 @@ class _LoginPageState extends State<LoginPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ENTER YOUR EMAIL TO RESET PASSWORD')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PASSWORD RESET LINK SENT TO YOUR EMAIL')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('RESET FAILED: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -116,19 +142,29 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 48),
               _buildTextField(
                 controller: _emailController,
-                label: 'USER IDENTIFICATION',
-                hint: 'Email or phone reference',
+                label: 'EMAIL',
+                hint: 'Enter your email',
                 icon: Icons.alternate_email_rounded,
               ),
               const SizedBox(height: 20),
               _buildTextField(
                 controller: _passwordController,
-                label: 'SECURITY KEY',
-                hint: 'Encrypted password or OTP',
+                label: 'PASSWORD',
+                hint: 'Enter your password',
                 icon: Icons.lock_outline_rounded,
                 obscure: true,
               ),
-              const SizedBox(height: 40),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _resetPassword,
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
                 style: ElevatedButton.styleFrom(
@@ -159,8 +195,24 @@ class _LoginPageState extends State<LoginPage> {
                       ),
               ),
               const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('No account reference?', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SignupPage()),
+                      );
+                    },
+                    child: const Text('CREATE ACCOUNT', style: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.w900, fontSize: 13)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               const Text(
-                'Technical Support: +91 [SUPPORT_REF]',
+                'Technical Support: +91 8369233566',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,

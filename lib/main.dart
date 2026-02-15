@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'services/auth_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,6 +11,9 @@ Future<void> main() async {
     url: 'https://ilrjpswhkgoesxmixnne.supabase.co',
     anonKey: 'sb_publishable_s0c8AxKmsyybrkQvgidavA_v7FA_hYO',
   );
+
+  // Initialize AuthManager early
+  AuthManager();
 
   runApp(const FineGlazeApp());
 }
@@ -52,10 +56,34 @@ class FineGlazeApp extends StatelessWidget {
           bodyMedium: TextStyle(color: Color(0xFF6A6A6A), fontSize: 14),
         ),
       ),
-      // Check if user is already logged in
-      home: Supabase.instance.client.auth.currentSession != null
-          ? const DashboardPage()
-          : const LoginPage(),
+      home: ListenableBuilder(
+        listenable: AuthManager(),
+        builder: (context, _) {
+          final auth = AuthManager();
+          
+          if (auth.session == null) {
+            return const LoginPage();
+          }
+
+          if (auth.isInitializing) {
+            return const Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(strokeWidth: 2),
+                    SizedBox(height: 16),
+                    Text('SYNCHRONIZING SECURE ACCESS', 
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return const DashboardPage();
+        },
+      ),
     );
   }
 }

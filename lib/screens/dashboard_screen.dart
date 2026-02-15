@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_screen.dart';
 import 'project_details_screen.dart';
+import 'account_settings_screen.dart';
+import '../services/auth_manager.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -11,78 +13,93 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String? _customerId;
-  String? _role;
-  bool _isLoading = true;
+  Stream<List<Map<String, dynamic>>>? _projectStream;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _initStream();
   }
 
-  Future<void> _fetchUserData() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+  void _initStream() {
+    final auth = AuthManager();
+    final role = auth.role;
+    final customerId = auth.customerId;
 
-      // Fetch profile role
-      final profileResponse = await Supabase.instance.client
-          .from('profiles')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle();
-      
-      final role = profileResponse?['role'] ?? 'customer';
-
-      Map<String, dynamic>? customerResponse;
-      if (role == 'customer') {
-        customerResponse = await Supabase.instance.client
-            .from('customers')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-      }
-
-      if (mounted) {
-        setState(() {
-          _role = role;
-          _customerId = customerResponse?['id'];
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching user data: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (role == 'admin') {
+      _projectStream = Supabase.instance.client
+          .from('projects')
+          .stream(primaryKey: ['id'])
+          .order('created_at');
+    } else if (role == 'customer' && customerId != null) {
+      _projectStream = Supabase.instance.client
+          .from('projects')
+          .stream(primaryKey: ['id'])
+          .eq('customer_id', customerId)
+          .order('created_at');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      );
+    final auth = AuthManager();
+    final role = auth.role;
+    final customerId = auth.customerId;
+
+    // Safety check - though handled by global navigator gate
+    if (role == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
 
-    if (_role == 'customer' && _customerId == null) {
+    if (role == 'customer' && customerId == null) {
+      final user = Supabase.instance.client.auth.currentUser;
       return Scaffold(
         appBar: AppBar(title: const Text('FineGlaze Dashboard')),
-        body: const Center(child: Text('No customer record found')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_person_outlined, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 24),
+                const Text('ACCESS DENIED', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.0)),
+                const SizedBox(height: 12),
+                const Text('NO CUSTOMER REFERENCE LINKED TO THIS ACCOUNT.', 
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('TECHNICAL DIAGNOSTICS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey)),
+                      const SizedBox(height: 8),
+                      Text('UID: ${user?.id ?? 'Unknown'}', style: const TextStyle(fontSize: 10, fontFamily: 'monospace')),
+                      Text('RESOLVED ROLE: ${role.toUpperCase()}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                TextButton(
+                  onPressed: () => AuthManager().signOut(),
+                  child: const Text('SIGN OUT AND RE-AUTHENTICATE'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
-    var projectStream = Supabase.instance.client
-        .from('projects')
-        .stream(primaryKey: ['id'])
-        .order('created_at');
-
-    if (_role == 'customer') {
-      projectStream = projectStream.eq('customer_id', _customerId!);
+    if (_projectStream == null) {
+      return const Scaffold(
+        body: Center(child: Text('STREAM INITIALIZATION ERROR')),
+      );
     }
 
     return Scaffold(
@@ -107,15 +124,13 @@ class _DashboardPageState extends State<DashboardPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-                if (context.mounted) {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
-                }
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+                );
               },
-              icon: const Icon(Icons.logout_rounded, size: 20),
+              icon: const Icon(Icons.person_outline_rounded, size: 20),
             ),
           ),
         ],
@@ -126,7 +141,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
             child: Text(
-              _role == 'admin' ? 'Management Console' : 'Active Portfolio',
+              role == 'admin' ? 'Management Console' : 'Active Portfolio',
               style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
@@ -137,7 +152,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: projectStream,
+              stream: _projectStream!,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(strokeWidth: 2));
@@ -190,7 +205,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             MaterialPageRoute(
                               builder: (context) => ProjectDetailsScreen(
                                 project: project,
-                                userRole: _role ?? 'customer',
+                                userRole: role ?? 'customer',
                               ),
                             ),
                           );
